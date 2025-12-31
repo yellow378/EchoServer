@@ -1,46 +1,111 @@
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "tcp.h"
 
-/*
- * bind
- * listen
- * accept
- */
-
-void create_server() {
+int create_server() {
+    /*
+     * socket will create a unbound socket
+     * domain: AF_INET- Address Family Internet
+     * type: SOCK_STREAM
+     * protocol: 0
+     */
     int my_socket = socket(AF_INET, SOCK_STREAM, 0);
-    printf("socket: %d\n", my_socket);
+    if (my_socket == -1) {
+        printf("Error: Create socket failed!\n");
+        return -1;
+    } else {
+        printf("socket: %d\n", my_socket);
+    }
 
-    struct in_addr sin_addr;
-    sin_addr.s_addr = INADDR_ANY;
-
+    /*
+     * create a socket Address
+     * Note: It's import to covert host endian to net endian
+     */
     struct sockaddr_in my_addr;
-    my_addr.sin_addr = sin_addr;
+    my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     my_addr.sin_port = htons(6789);
     my_addr.sin_family = AF_INET;
+    char addr_string[17];
+    if (NULL == inet_ntop(AF_INET, &my_addr.sin_addr, addr_string,
+                          sizeof(addr_string))) {
+        printf("Error: Address convert failed!\n");
+        return -1;
+    } else {
+        printf("address: %s, %d\n", addr_string, ntohs(my_addr.sin_port));
+    }
 
+    /*
+     * Set socket to enable reuse
+     */
+    int reuse = 1;
+    if (setsockopt(my_socket, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) <
+        0) {
+        perror("set socket opt to address reuse failed");
+        return -1;
+    }
+
+    /*
+     * Bind address to Socket
+     */
     if (bind(my_socket, (const struct sockaddr *)&my_addr,
              sizeof(struct sockaddr_in)) == -1) {
-        printf("bind failed!\n");
+        perror("bind failed!");
     } else {
         printf("bind successful!\n");
     }
 
+    /*
+     * Make socket listen address and port
+     */
     if (listen(my_socket, 0) == -1) {
         printf("listen failed!\n");
     } else {
         printf("listen successful!\n");
     }
 
-    int acc_socket = accept(my_socket, NULL, NULL);
-    char buffer[100] = "Hello\n";
-    write(acc_socket, buffer, 7);
+    return my_socket;
 }
 
 int main() {
-    create_server();
+    int server = create_server();
+    while (1) {
+        /*
+         * accept: while a connection connected, while create a
+         * socket_pair<server_socket, client_socket>
+         */
+        int client = accept(server, NULL, NULL);
+        int pid = fork();
+        if (pid == 0) {
+            /* Child Process */
+            struct sockaddr_in client_addr;
+            socklen_t client_len = sizeof(struct sockaddr_in);
+            getpeername(client, (struct sockaddr *)&client_addr, &client_len);
+            char client_addr_string[17];
+            if (NULL == inet_ntop(AF_INET, &client_addr.sin_addr,
+                                  client_addr_string,
+                                  sizeof(client_addr_string))) {
+                perror("Address convert failed:");
+                return 0;
+            }
+            int client_port = ntohs(client_addr.sin_port);
+            printf("Connect from %s:%d\n", client_addr_string, client_port);
+
+            char buffer[100] = "Hello, welcom to my EchoServer\n";
+            send(client, buffer, 100, MSG_NOSIGNAL);
+            size_t recv_size;
+            while ((recv_size = recv(client, buffer, 100, MSG_NOSIGNAL)) > 0) {
+                buffer[recv_size] = '\0';
+                printf("Server Recv[%s:%d]: %s\n", client_addr_string,
+                       client_port, buffer);
+                send(client, buffer, recv_size, MSG_NOSIGNAL);
+            }
+            printf("Good bye!\n");
+            return 0;
+        } else {
+            /* Parent Process
+             * Nothing to do
+             */
+
+            // TODO quit
+        }
+    }
     return 0;
 }
