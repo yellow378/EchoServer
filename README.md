@@ -1,6 +1,7 @@
 # EchoServer  
 
-I want implement a Echo Server by TCP or other protocol. And I want to study Github
+I want implement a Echo Server by TCP or other protocol. And I want to study Github.
+Right now, I also want to study CSAPP. 
 
 ## Reference
 
@@ -9,3 +10,6 @@ I want implement a Echo Server by TCP or other protocol. And I want to study Git
 ## TODO
 
 - [ ] Quit main loop
+- [ ] Check Multi-Process Correctness
+- [ ] Add More Function
+  - [ ] Floating Point
