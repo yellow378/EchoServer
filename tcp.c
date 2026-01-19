@@ -75,6 +75,7 @@ int main() {
         int pid = fork();
         if (pid == 0) {
             /* Child Process */
+            close(server);
             struct sockaddr_in client_addr;
             socklen_t client_len = sizeof(struct sockaddr_in);
             getpeername(client, (struct sockaddr *)&client_addr, &client_len);
@@ -103,8 +104,10 @@ int main() {
             /* Parent Process
              * Nothing to do
              */
-
-            // TODO quit
+            // Parent child close client socket
+            close(client);
+            while (waitpid(-1, NULL, WNOHANG) > 0) {
+            }
         }
     }
     return 0;
