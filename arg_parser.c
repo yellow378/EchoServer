@@ -77,6 +77,7 @@ char **arg_pars(const char *input, size_t *size) {
  * 从标准输入读取每一行，使用 arg_pars() 解析并打印所有 token。
  * 支持循环输入，Ctrl+D (Unix) 或 Ctrl+Z (Windows) 退出。
  */
+#ifdef STANDALONE_TEST
 int main() {
     char *input = NULL;
     size_t size = 0;
@@ -102,3 +103,4 @@ int main() {
 
     return 0;
 }
+#endif

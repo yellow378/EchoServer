@@ -1,4 +1,6 @@
 #include "tcp.h"
+#include "arg_parser.h"
+#include <sys/socket.h>
 
 int create_server() {
     /*
@@ -89,14 +91,26 @@ int main() {
             int client_port = ntohs(client_addr.sin_port);
             printf("Connect from %s:%d\n", client_addr_string, client_port);
 
-            char buffer[100] = "Hello, welcom to my EchoServer\n";
-            send(client, buffer, 100, MSG_NOSIGNAL);
-            size_t recv_size;
-            while ((recv_size = recv(client, buffer, 100, MSG_NOSIGNAL)) > 0) {
+            char buffer[1000] = "Hello, welcom to my EchoServer\n";
+            send(client, buffer, 1000, MSG_NOSIGNAL);
+            ssize_t recv_size;
+            while ((recv_size = recv(client, buffer, 999, MSG_NOSIGNAL)) > 0) {
                 buffer[recv_size] = '\0';
                 printf("Server Recv[%s:%d]: %s\n", client_addr_string,
                        client_port, buffer);
-                send(client, buffer, recv_size, MSG_NOSIGNAL);
+                size_t arg_count;
+                char **args = arg_pars(buffer, &arg_count);
+                if (args != NULL) {
+                    for (size_t i = 0; i < arg_count; i++) {
+                        snprintf(buffer, sizeof(buffer), "arg %zu : %s\n", i,
+                                 args[i]);
+                        send(client, buffer, strlen(buffer), MSG_NOSIGNAL);
+                        free(args[i]);
+                    }
+                    free(args);
+                }
+
+                // send(client, buffer, recv_size, MSG_NOSIGNAL);
             }
             printf("Good bye!\n");
             return 0;
