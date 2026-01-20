@@ -1,5 +1,6 @@
 #include "tcp.h"
 #include "arg_parser.h"
+#include "floating_point.h"
 #include <sys/socket.h>
 
 int create_server() {
@@ -101,23 +102,34 @@ int main() {
                 size_t arg_count;
                 char **args = arg_pars(buffer, &arg_count);
                 if (args != NULL) {
+                    if (strcmp(args[0], "fp") == 0) {
+                        if (arg_count < 2) {
+                            snprintf(buffer, sizeof(buffer) - 1,
+                                     "fp缺少参数\n");
+                            send(client, buffer, strlen(buffer), MSG_NOSIGNAL);
+                        } else {
+                            char *ret;
+                            if (args[1][strlen(args[1]) - 1] == 'f') {
+                                float f = strtof(args[1], NULL);
+                                ret = show_float_bytes(f);
+                            } else {
+                                double d = strtod(args[1], NULL);
+                                ret = show_double_bytes(d);
+                            }
+                            send(client, ret, strlen(ret), MSG_NOSIGNAL);
+                            free(ret);
+                        }
+                    }
                     for (size_t i = 0; i < arg_count; i++) {
-                        snprintf(buffer, sizeof(buffer), "arg %zu : %s\n", i,
-                                 args[i]);
-                        send(client, buffer, strlen(buffer), MSG_NOSIGNAL);
                         free(args[i]);
                     }
                     free(args);
                 }
-
-                // send(client, buffer, recv_size, MSG_NOSIGNAL);
             }
             printf("Good bye!\n");
             return 0;
         } else {
-            /* Parent Process
-             * Nothing to do
-             */
+            // Parent Process
             // Parent child close client socket
             close(client);
             while (waitpid(-1, NULL, WNOHANG) > 0) {
