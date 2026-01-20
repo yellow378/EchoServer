@@ -25,7 +25,8 @@
   - recv_size 可能为 100，`buffer[100] = '\0'` 会越界
   - 建议: buffer 设为 101 字节，或限制 recv 长度为 99
 
-## 更多Future
+## 更多Feature
 
 - [ ] Floating Point
+  - feature: show bytes format
 - [x] Argument Parser
